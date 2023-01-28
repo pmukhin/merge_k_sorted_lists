@@ -58,9 +58,8 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
     fn resize(&mut self) {
         let new_size = self.curr_size * 2;
         let mut new_data: Vec<Pair<K, V>> = Vec::with_capacity(new_size);
-        for _ in 0..new_size {
-            new_data.push(Pair::Empty);
-        }
+        (0..new_size).for_each(|_| new_data.push(Pair::Empty));
+        
         let old_data = self.data.to_vec();
 
         self.curr_size = new_size;
@@ -98,7 +97,7 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
                     self.data[idx+i] = Pair::Some(key, value);
                     return;
                 },
-                _ => {} // do nothing
+                _ => () // do nothing
             }
         }
 
@@ -128,17 +127,17 @@ fn it_creates() {
             if i % 2 == 0 { format!("newvalue-of-{}", v) } else { v.to_string() }
         ).collect();
 
-    for (i, k) in keys.iter().enumerate() {
-        dict.put(k.to_string(), values[i].to_string());
+    for (k, v) in keys.iter().zip(&values) {
+        dict.put(k.to_string(), v.to_string());
     }
-    for (i, k) in keys.iter().enumerate() {
-        assert_eq!(dict.get(k), Option::Some(values[i].to_string()));
+    for (k, v) in keys.iter().zip(&values) {
+        assert_eq!(dict.get(k), Option::Some(v.to_string()));
     }
-    for (i, k) in keys.iter().enumerate() {
-        dict.put(k.to_string(), new_values[i].to_string());
+    for (k, v) in keys.iter().zip(&new_values) {
+        dict.put(k.to_string(), v.to_string());
     }
-    for (i, k) in keys.iter().enumerate() {
-        assert_eq!(dict.get(k), Option::Some(new_values[i].to_string()));
+    for (k, v) in keys.iter().zip(&new_values) {
+        assert_eq!(dict.get(k), Option::Some(v.to_string()));
     }
     dict.diagnosis();
 }
