@@ -1,5 +1,5 @@
 use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher};
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
 const INITIAL_SIZE: usize = 64;
 const INITIAL_SEARCH_CLOSEST_SLOTS: usize = 6;
@@ -116,28 +116,44 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
     }
 }
 
-#[test]
-fn it_creates() {
-    let mut dict: Dict<String, String> = Dict::new();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    extern crate test;
+    use test::Bencher;
 
-    let keys: Vec<String> = (0..2400).map(|i| format!("key-of-{}", i)).collect();
-    let values: Vec<String> = keys.iter().map(|i| format!("value-of-key-of-{}", i)).collect();
-    let new_values: Vec<String> = 
-        keys.iter().enumerate().map(|(i, v)| 
-            if i % 2 == 0 { format!("newvalue-of-{}", v) } else { v.to_string() }
-        ).collect();
+    fn with_strings(size: usize) {
+        let mut dict: Dict<String, String> = Dict::new();
 
-    for (k, v) in keys.iter().zip(&values) {
-        dict.put(k.to_string(), v.to_string());
+        let keys: Vec<String> = (0..size).map(|i| format!("key-of-{}", i)).collect();
+        let values: Vec<String> = keys.iter().map(|i| format!("value-of-key-of-{}", i)).collect();
+        let new_values: Vec<String> = 
+            keys.iter().enumerate().map(|(i, v)| 
+                if i % 2 == 0 { format!("newvalue-of-{}", v) } else { v.to_string() }
+            ).collect();
+
+        for (k, v) in keys.iter().zip(&values) {
+            dict.put(k.to_string(), v.to_string());
+        }
+        for (k, v) in keys.iter().zip(&values) {
+            assert_eq!(dict.get(k), Option::Some(v.to_string()));
+        }
+        for (k, v) in keys.iter().zip(&new_values) {
+            dict.put(k.to_string(), v.to_string());
+        }
+        for (k, v) in keys.iter().zip(&new_values) {
+            assert_eq!(dict.get(k), Option::Some(v.to_string()));
+        }
+        dict.diagnosis();
     }
-    for (k, v) in keys.iter().zip(&values) {
-        assert_eq!(dict.get(k), Option::Some(v.to_string()));
+
+    #[test]
+    fn test_with_strings() {
+        with_strings(2400)
     }
-    for (k, v) in keys.iter().zip(&new_values) {
-        dict.put(k.to_string(), v.to_string());
+
+    #[bench]
+    fn bench_add_two(b: &mut Bencher) {
+        b.iter(|| with_strings(400))
     }
-    for (k, v) in keys.iter().zip(&new_values) {
-        assert_eq!(dict.get(k), Option::Some(v.to_string()));
-    }
-    dict.diagnosis();
 }

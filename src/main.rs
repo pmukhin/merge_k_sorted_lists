@@ -1,3 +1,5 @@
+#![feature(test)]
+
 use linkedlist::LNode;
 
 mod qsort;
