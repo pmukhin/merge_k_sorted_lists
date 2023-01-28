@@ -38,21 +38,21 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
         idx
     }
 
-    fn get_with_index(&mut self, _key: &K) -> (Option<&V>, usize) {
-        let idx = self.get_slot(_key);
+    fn get_with_index(&mut self, key: &K) -> (Option<&V>, usize) {
+        let idx = self.get_slot(key);
         
         for i in 0..self.search_closest_slots {
             match &self.data[idx+i] {
-                Pair::Empty => { return (Option::None, idx); },
-                Pair::Some( k, v) => {
-                    if _key == k {
+                Pair::Empty => break,
+                Pair::Some(k, v) => {
+                    if key == k {
                         return (Option::Some(v), idx);
                     }
                 }
             }
         }
 
-        todo!()
+        (Option::None, idx)
     }
 
     fn resize(&mut self) {
@@ -67,18 +67,17 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
         self.data = new_data;
         self.search_closest_slots = self.search_closest_slots * 1.6 as usize;
 
-        for pair in old_data.iter() {
+        old_data.iter().for_each(|pair| {
             match pair {
-                Pair::Empty => {},
-                Pair::Some(k, v) => self.put(k.clone(), v.clone())
+                Pair::Some(k, v) => self.put(k.clone(), v.clone()),
+                _ => (),
             }
-        }
-
+        });
         println!("resized to {}", self.curr_size)
     }
 
-    pub fn get(&mut self, key: K) -> Option<V> {
-        match self.get_with_index(&key) {
+    pub fn get(&mut self, key: &K) -> Option<V> {
+        match self.get_with_index(key) {
             (Option::Some(v), _) => Option::Some(v.clone()),
             _ => Option::None
         }
@@ -133,13 +132,13 @@ fn it_creates() {
         dict.put(k.to_string(), values[i].to_string());
     }
     for (i, k) in keys.iter().enumerate() {
-        assert_eq!(dict.get(k.to_string()), Option::Some(values[i].to_string()));
+        assert_eq!(dict.get(k), Option::Some(values[i].to_string()));
     }
     for (i, k) in keys.iter().enumerate() {
         dict.put(k.to_string(), new_values[i].to_string());
     }
     for (i, k) in keys.iter().enumerate() {
-        assert_eq!(dict.get(k.to_string()), Option::Some(new_values[i].to_string()));
+        assert_eq!(dict.get(k), Option::Some(new_values[i].to_string()));
     }
     dict.diagnosis();
 }
