@@ -148,12 +148,26 @@ mod tests {
     }
 
     #[test]
+    fn test_with_chars() {
+        let mut dict: Dict<char, usize> = Dict::new();
+        let keys = (b'A'..=b'z')           // Start as u8
+            .map(|c| c as char)            // Convert all to chars
+            .filter(|c| c.is_alphabetic()) // Filter only alphabetic chars
+            .collect::<Vec<_>>();
+        let values = (0..keys.len()).collect::<Vec<_>>();
+        for (k, v) in keys.iter().zip(values) {
+            dict.put(*k, v);
+            assert_eq!(dict.get(k), Option::Some(v));
+        }
+    }
+
+    #[test]
     fn test_with_strings() {
         with_strings(2400)
     }
 
     #[bench]
-    fn bench_add_two(b: &mut Bencher) {
-        b.iter(|| with_strings(400))
+    fn bench_with_strings(b: &mut Bencher) {
+        b.iter(|| with_strings(40))
     }
 }
