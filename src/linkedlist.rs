@@ -1,28 +1,26 @@
+use std::fmt::Debug;
 use std::fmt::Display;
-use std::fmt::{Debug};
 
 #[derive(Debug, Default)]
 pub enum LNode<A> {
     #[default]
     Null,
-    Node(A, Box<LNode<A>>)
+    Node(A, Box<LNode<A>>),
 }
 
-impl <A: Clone + Display + Debug> From<&Vec<A>> for LNode<A> {
+impl<A: Clone + Display + Debug> From<&Vec<A>> for LNode<A> {
     fn from(value: &Vec<A>) -> Self {
         let mut empty = LNode::empty();
         if value.is_empty() {
             return empty;
         }
-        value.iter().for_each(|c| {
-            empty = empty.insert(c.clone())
-        });
+        value.iter().for_each(|c| empty = empty.insert(c.clone()));
         empty
     }
 }
 
 #[allow(dead_code)]
-impl <A: Clone + Display + Debug> LNode<A> {
+impl<A: Clone + Display + Debug> LNode<A> {
     pub fn empty() -> LNode<A> {
         LNode::Null
     }
@@ -31,24 +29,22 @@ impl <A: Clone + Display + Debug> LNode<A> {
         LNode::Node(val, Box::new(LNode::Null))
     }
 
-    pub fn map <B: Clone + Display>(&self, f: fn(A) -> B) -> LNode<B> {
+    pub fn map<B: Clone + Display>(&self, f: fn(A) -> B) -> LNode<B> {
         match self {
             LNode::Null => LNode::Null,
-            LNode::Node(a, next) =>
-                LNode::Node(f(a.clone()), Box::new(next.map(f)))
-        }    
+            LNode::Node(a, next) => LNode::Node(f(a.clone()), Box::new(next.map(f))),
+        }
     }
 
     pub fn insert(&self, new_value: A) -> LNode<A> {
         match self {
             LNode::Null => LNode::Node(new_value, Box::new(LNode::Null)),
-            LNode::Node(val, next) => 
-                LNode::Node(val.clone(), Box::new( next.insert(new_value)))
+            LNode::Node(val, next) => LNode::Node(val.clone(), Box::new(next.insert(new_value))),
         }
     }
 }
 
-impl <A: Clone + Display> ToString for LNode<A> {
+impl<A: Clone + Display> ToString for LNode<A> {
     fn to_string(&self) -> String {
         let mut ll = &*self;
         let mut r = String::new();
@@ -56,10 +52,11 @@ impl <A: Clone + Display> ToString for LNode<A> {
         loop {
             match ll {
                 LNode::Null => {
-                    r.push_str("Null"); break
-                },
+                    r.push_str("Null");
+                    break;
+                }
                 LNode::Node(val, next) => {
-                    r.push_str(format!("Node({})->", val).as_str()); 
+                    r.push_str(format!("Node({})->", val).as_str());
                     ll = next;
                 }
             }
@@ -68,13 +65,11 @@ impl <A: Clone + Display> ToString for LNode<A> {
     }
 }
 
-impl <A: Clone + Display> Clone for LNode<A> {
+impl<A: Clone + Display> Clone for LNode<A> {
     fn clone(&self) -> Self {
         match self {
             LNode::Null => LNode::Null,
-            LNode::Node(a, next) => {
-                LNode::Node(a.clone(), next.clone())
-            }
+            LNode::Node(a, next) => LNode::Node(a.clone(), next.clone()),
         }
     }
 }

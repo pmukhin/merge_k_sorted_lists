@@ -1,5 +1,8 @@
-use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher};
 use std::fmt::Debug;
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
 
 const INITIAL_SIZE: usize = 64;
 const INITIAL_SEARCH_CLOSEST_SLOTS: usize = 6;
@@ -8,23 +11,28 @@ const INITIAL_SEARCH_CLOSEST_SLOTS: usize = 6;
 enum Pair<K: Debug, V: Clone + Debug> {
     #[default]
     Empty,
-    Some(K, V)
+    Some(K, V),
 }
 
 pub struct Dict<K: Clone + Eq + Hash + Debug, V: Clone + Debug> {
     curr_size: usize,
     search_closest_slots: usize,
-    data: Vec<Pair<K, V>>
+    data: Vec<Pair<K, V>>,
 }
 
 #[warn(dead_code)]
-impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
+impl<K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
     fn new() -> Dict<K, V> {
-        let mut data = Vec::with_capacity(INITIAL_SIZE);
-        for _ in 0..INITIAL_SIZE {
+        let total_slots = INITIAL_SIZE + (INITIAL_SEARCH_CLOSEST_SLOTS - 1);
+        let mut data = Vec::with_capacity(total_slots);
+        for _ in 0..total_slots {
             data.push(Pair::default());
         }
-        Dict { curr_size: INITIAL_SIZE, data: data, search_closest_slots: INITIAL_SEARCH_CLOSEST_SLOTS }
+        Dict {
+            curr_size: INITIAL_SIZE,
+            data: data,
+            search_closest_slots: INITIAL_SEARCH_CLOSEST_SLOTS,
+        }
     }
 
     fn get_slot(&mut self, key: &K) -> usize {
@@ -38,66 +46,59 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
         idx
     }
 
-    fn get_with_index(&mut self, key: &K) -> (Option<&V>, usize) {
-        let idx = self.get_slot(key);
-        
-        for i in 0..self.search_closest_slots {
-            match &self.data[idx+i] {
-                Pair::Empty => break,
-                Pair::Some(k, v) => {
-                    if key == k {
-                        return (Option::Some(v), idx);
-                    }
-                }
-            }
-        }
-
-        (Option::None, idx)
-    }
-
     fn resize(&mut self) {
         let new_size = self.curr_size * 2;
-        let mut new_data: Vec<Pair<K, V>> = Vec::with_capacity(new_size);
-        (0..new_size).for_each(|_| new_data.push(Pair::Empty));
-        
+        let new_search_closest_slots = self.search_closest_slots * 1.6 as usize;
+        let total_new_size = new_size + new_search_closest_slots;
+        let mut new_data: Vec<Pair<K, V>> = Vec::with_capacity(total_new_size);
+        (0..total_new_size).for_each(|_| new_data.push(Pair::Empty));
+
         let old_data = self.data.to_vec();
 
         self.curr_size = new_size;
         self.data = new_data;
-        self.search_closest_slots = self.search_closest_slots * 1.6 as usize;
+        self.search_closest_slots = new_search_closest_slots;
 
-        old_data.iter().for_each(|pair| {
-            match pair {
-                Pair::Some(k, v) => self.put(k.clone(), v.clone()),
-                _ => (),
-            }
+        old_data.iter().for_each(|pair| match pair {
+            Pair::Some(k, v) => self.put(k.clone(), v.clone()),
+            _ => (),
         });
+
         println!("resized to {}", self.curr_size)
     }
 
     pub fn get(&mut self, key: &K) -> Option<V> {
-        match self.get_with_index(key) {
-            (Option::Some(v), _) => Option::Some(v.clone()),
-            _ => Option::None
+        let idx = self.get_slot(key);
+
+        for i in 0..self.search_closest_slots {
+            match &self.data[idx + i] {
+                Pair::Empty => break,
+                Pair::Some(k, v) => {
+                    if *key == *k {
+                        return Option::Some(v.clone());
+                    }
+                }
+            }
         }
+        Option::None
+    }
+
+    fn insert(&mut self, idx: usize, key: K, value: V) {
+        self.data[idx] = Pair::Some(key, value);
     }
 
     pub fn put(&mut self, key: K, value: V) {
         let idx = self.get_slot(&key);
-        
-        for i in 0..self.search_closest_slots {
-            if idx+i >= self.curr_size { break; } // GOTO resize :) }
 
-            match &self.data[idx+i] {
+        for i in 0..self.search_closest_slots {
+            match &self.data[idx + i] {
                 Pair::Empty => {
-                    self.data[idx+i] = Pair::Some(key, value);
-                    return;
-                },
+                    return self.insert(idx + i, key, value);
+                }
                 Pair::Some(__key, __value) if *__key == key => {
-                    self.data[idx+i] = Pair::Some(key, value);
-                    return;
-                },
-                _ => () // do nothing
+                    return self.insert(idx + i, key, value);
+                }
+                _ => (), // do nothing
             }
         }
 
@@ -110,7 +111,12 @@ impl <K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
 
         for i in 0..self.curr_size {
             let node = &self.data[i];
-            let i_s = if i < 10 { format!("0{}", i) } else { format!("{}", i) };
+            let i_s = if i < 10 {
+                format!("0{}", i)
+            } else {
+                format!("{}", i)
+            };
+
             println!("{i_s}: {:?}", node);
         }
     }
@@ -126,11 +132,21 @@ mod tests {
         let mut dict: Dict<String, String> = Dict::new();
 
         let keys: Vec<String> = (0..size).map(|i| format!("key-of-{}", i)).collect();
-        let values: Vec<String> = keys.iter().map(|i| format!("value-of-key-of-{}", i)).collect();
-        let new_values: Vec<String> = 
-            keys.iter().enumerate().map(|(i, v)| 
-                if i % 2 == 0 { format!("newvalue-of-{}", v) } else { v.to_string() }
-            ).collect();
+        let values: Vec<String> = keys
+            .iter()
+            .map(|i| format!("value-of-key-of-{}", i))
+            .collect();
+        let new_values: Vec<String> = keys
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                if i % 2 == 0 {
+                    format!("newvalue-of-{}", v)
+                } else {
+                    v.to_string()
+                }
+            })
+            .collect();
 
         for (k, v) in keys.iter().zip(&values) {
             dict.put(k.to_string(), v.to_string());
@@ -150,9 +166,9 @@ mod tests {
     #[test]
     fn test_with_chars() {
         let mut dict: Dict<char, usize> = Dict::new();
-        let keys = (b'A'..=b'z')           // Start as u8
-            .map(|c| c as char)            // Convert all to chars
-            .filter(|c| c.is_alphabetic()) // Filter only alphabetic chars
+        let keys = (b'A'..=b'z')
+            .map(|c| c as char)
+            .filter(|c| c.is_alphabetic())
             .collect::<Vec<_>>();
         let values = (0..keys.len()).collect::<Vec<_>>();
         for (k, v) in keys.iter().zip(values) {
