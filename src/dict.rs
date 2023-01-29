@@ -4,7 +4,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-const INITIAL_SIZE: usize = 64;
+const INITIAL_CARDINALITY: usize = 64;
 const INITIAL_SEARCH_CLOSEST_SLOTS: usize = 6;
 
 #[derive(Debug, Clone, Default)]
@@ -23,13 +23,12 @@ pub struct Dict<K: Clone + Eq + Hash + Debug, V: Clone + Debug> {
 #[warn(dead_code)]
 impl<K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
     fn new() -> Dict<K, V> {
-        let total_slots = INITIAL_SIZE + (INITIAL_SEARCH_CLOSEST_SLOTS - 1);
+        let total_slots = INITIAL_CARDINALITY + (INITIAL_SEARCH_CLOSEST_SLOTS - 1);
         let mut data = Vec::with_capacity(total_slots);
-        for _ in 0..total_slots {
-            data.push(Pair::default());
-        }
+        (0..total_slots).for_each(|_| data.push(Pair::default()));
+
         Dict {
-            curr_size: INITIAL_SIZE,
+            curr_size: INITIAL_CARDINALITY,
             data: data,
             search_closest_slots: INITIAL_SEARCH_CLOSEST_SLOTS,
         }
@@ -51,6 +50,7 @@ impl<K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
         let new_search_closest_slots = self.search_closest_slots * 1.6 as usize;
         let total_new_size = new_size + new_search_closest_slots;
         let mut new_data: Vec<Pair<K, V>> = Vec::with_capacity(total_new_size);
+
         (0..total_new_size).for_each(|_| new_data.push(Pair::Empty));
 
         let old_data = self.data.to_vec();
