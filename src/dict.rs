@@ -4,7 +4,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-const INITIAL_CARDINALITY: usize = 64;
+const INITIAL_CARDINALITY: usize          = 64;
 const INITIAL_SEARCH_CLOSEST_SLOTS: usize = 6;
 
 #[derive(Debug, Clone, Default)]
@@ -116,7 +116,6 @@ impl<K: Clone + Eq + Hash + Debug, V: Clone + Debug> Dict<K, V> {
             } else {
                 format!("{}", i)
             };
-
             println!("{i_s}: {:?}", node);
         }
     }
@@ -131,12 +130,12 @@ mod tests {
     fn with_strings(size: usize) {
         let mut dict: Dict<String, String> = Dict::new();
 
-        let keys: Vec<String> = (0..size).map(|i| format!("key-of-{}", i)).collect();
-        let values: Vec<String> = keys
+        let keys = (0..size).map(|i| format!("key-of-{}", i)).collect::<Vec<_>>();
+        let values = keys
             .iter()
             .map(|i| format!("value-of-key-of-{}", i))
-            .collect();
-        let new_values: Vec<String> = keys
+            .collect::<Vec<_>>();
+        let new_values = keys
             .iter()
             .enumerate()
             .map(|(i, v)| {
@@ -146,8 +145,7 @@ mod tests {
                     v.to_string()
                 }
             })
-            .collect();
-
+            .collect::<Vec<_>>();
         for (k, v) in keys.iter().zip(&values) {
             dict.put(k.to_string(), v.to_string());
         }
